@@ -15,7 +15,6 @@ IMAGENET_INCEPTION_STD = (0.5, 0.5, 0.5)
 
 
 class ImageToNumpy:
-
     def __call__(self, pil_img, annotations: dict):
         np_img = np.array(pil_img, dtype=np.uint8)
         if np_img.ndim < 3:
@@ -25,7 +24,6 @@ class ImageToNumpy:
 
 
 class ImageToTensor:
-
     def __init__(self, dtype=torch.float32):
         self.dtype = dtype
 
@@ -38,11 +36,11 @@ class ImageToTensor:
 
 
 def _pil_interp(method):
-    if method == 'bicubic':
+    if method == "bicubic":
         return Image.BICUBIC
-    elif method == 'lanczos':
+    elif method == "lanczos":
         return Image.LANCZOS
-    elif method == 'hamming':
+    elif method == "hamming":
         return Image.HAMMING
     else:
         # default bilinear, do we want to allow nearest?
@@ -73,8 +71,12 @@ def _size_tuple(size):
 
 
 class ResizePad:
-
-    def __init__(self, target_size: int, interpolation: str = 'bilinear', fill_color: tuple = (0, 0, 0)):
+    def __init__(
+        self,
+        target_size: int,
+        interpolation: str = "bilinear",
+        fill_color: tuple = (0, 0, 0),
+    ):
         self.target_size = _size_tuple(target_size)
         self.interpolation = interpolation
         self.fill_color = fill_color
@@ -88,32 +90,38 @@ class ResizePad:
         scaled_h = int(height * img_scale)
         scaled_w = int(width * img_scale)
 
-        new_img = Image.new("RGB", (self.target_size[1], self.target_size[0]), color=self.fill_color)
+        new_img = Image.new(
+            "RGB", (self.target_size[1], self.target_size[0]), color=self.fill_color
+        )
         interp_method = _pil_interp(self.interpolation)
         img = img.resize((scaled_w, scaled_h), interp_method)
         new_img.paste(img)
 
-        if 'bbox' in anno:
+        if "bbox" in anno:
             # FIXME haven't tested this path since not currently using dataset annotations for train/eval
-            bbox = anno['bbox']
+            bbox = anno["bbox"]
             bbox[:, :4] *= img_scale
             clip_boxes_(bbox, (scaled_h, scaled_w))
             valid_indices = (bbox[:, :2] < bbox[:, 2:4]).all(axis=1)
-            anno['bbox'] = bbox[valid_indices, :]
-            anno['cls'] = anno['cls'][valid_indices]
+            anno["bbox"] = bbox[valid_indices, :]
+            anno["cls"] = anno["cls"][valid_indices]
 
-        anno['img_scale'] = 1. / img_scale  # back to original
+        anno["img_scale"] = 1.0 / img_scale  # back to original
 
         return new_img, anno
 
 
 class RandomResizePad:
-
-    def __init__(self, target_size: int, scale: tuple = (0.1, 2.0), interpolation: str = 'random',
-                 fill_color: tuple = (0, 0, 0)):
+    def __init__(
+        self,
+        target_size: int,
+        scale: tuple = (0.1, 2.0),
+        interpolation: str = "random",
+        fill_color: tuple = (0, 0, 0),
+    ):
         self.target_size = _size_tuple(target_size)
         self.scale = scale
-        if interpolation == 'random':
+        if interpolation == "random":
             self.interpolation = _RANDOM_INTERPOLATION
         else:
             self.interpolation = _pil_interp(interpolation)
@@ -148,29 +156,34 @@ class RandomResizePad:
         else:
             interpolation = self.interpolation
         img = img.resize((scaled_w, scaled_h), interpolation)
-        right, lower = min(scaled_w, offset_x + self.target_size[1]), min(scaled_h, offset_y + self.target_size[0])
+        right, lower = min(scaled_w, offset_x + self.target_size[1]), min(
+            scaled_h, offset_y + self.target_size[0]
+        )
         img = img.crop((offset_x, offset_y, right, lower))
-        new_img = Image.new("RGB", (self.target_size[1], self.target_size[0]), color=self.fill_color)
+        new_img = Image.new(
+            "RGB", (self.target_size[1], self.target_size[0]), color=self.fill_color
+        )
         new_img.paste(img)
 
-        if 'bbox' in anno:
+        if "bbox" in anno:
             # FIXME not fully tested
-            bbox = anno['bbox'].copy()  # FIXME copy for debugger inspection, back to inplace
+            bbox = anno[
+                "bbox"
+            ].copy()  # FIXME copy for debugger inspection, back to inplace
             bbox[:, :4] *= img_scale
             box_offset = np.stack([offset_y, offset_x] * 2)
             bbox -= box_offset
             clip_boxes_(bbox, (scaled_h, scaled_w))
             valid_indices = (bbox[:, :2] < bbox[:, 2:4]).all(axis=1)
-            anno['bbox'] = bbox[valid_indices, :]
-            anno['cls'] = anno['cls'][valid_indices]
+            anno["bbox"] = bbox[valid_indices, :]
+            anno["cls"] = anno["cls"][valid_indices]
 
-        anno['img_scale'] = 1. / img_scale  # back to original
+        anno["img_scale"] = 1.0 / img_scale  # back to original
 
         return new_img, anno
 
 
 class RandomFlip:
-
     def __init__(self, horizontal=True, vertical=False, prob=0.5):
         self.horizontal = horizontal
         self.vertical = vertical
@@ -199,17 +212,17 @@ class RandomFlip:
 
         if do_horizontal and do_vertical:
             img = img.transpose(Image.ROTATE_180)
-            if 'bbox' in annotations:
-                _fliph(annotations['bbox'])
-                _flipv(annotations['bbox'])
+            if "bbox" in annotations:
+                _fliph(annotations["bbox"])
+                _flipv(annotations["bbox"])
         elif do_horizontal:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
-            if 'bbox' in annotations:
-                _fliph(annotations['bbox'])
+            if "bbox" in annotations:
+                _fliph(annotations["bbox"])
         elif do_vertical:
             img = img.transpose(Image.FLIP_TOP_BOTTOM)
-            if 'bbox' in annotations:
-                _flipv(annotations['bbox'])
+            if "bbox" in annotations:
+                _flipv(annotations["bbox"])
 
         return img, annotations
 
@@ -223,13 +236,12 @@ def resolve_fill_color(fill_color, img_mean=IMAGENET_DEFAULT_MEAN):
             int_color = int(fill_color)
             fill_color = (int_color,) * 3
         except ValueError:
-            assert fill_color == 'mean'
+            assert fill_color == "mean"
             fill_color = tuple([int(round(255 * x)) for x in img_mean])
     return fill_color
 
 
 class Compose:
-
     def __init__(self, transforms: list):
         self.transforms = transforms
 
@@ -240,18 +252,20 @@ class Compose:
 
 
 def transforms_coco_eval(
-        img_size=224,
-        interpolation='bilinear',
-        use_prefetcher=False,
-        fill_color='mean',
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD):
+    img_size=224,
+    interpolation="bilinear",
+    use_prefetcher=False,
+    fill_color="mean",
+    mean=IMAGENET_DEFAULT_MEAN,
+    std=IMAGENET_DEFAULT_STD,
+):
 
     fill_color = resolve_fill_color(fill_color, mean)
 
     image_tfl = [
         ResizePad(
-            target_size=img_size, interpolation=interpolation, fill_color=fill_color),
+            target_size=img_size, interpolation=interpolation, fill_color=fill_color
+        ),
         ImageToNumpy(),
     ]
 
@@ -262,19 +276,21 @@ def transforms_coco_eval(
 
 
 def transforms_coco_train(
-        img_size=224,
-        interpolation='random',
-        use_prefetcher=False,
-        fill_color='mean',
-        mean=IMAGENET_DEFAULT_MEAN,
-        std=IMAGENET_DEFAULT_STD):
+    img_size=224,
+    interpolation="random",
+    use_prefetcher=False,
+    fill_color="mean",
+    mean=IMAGENET_DEFAULT_MEAN,
+    std=IMAGENET_DEFAULT_STD,
+):
 
     fill_color = resolve_fill_color(fill_color, mean)
 
     image_tfl = [
         RandomFlip(horizontal=True, prob=0.5),
         RandomResizePad(
-            target_size=img_size, interpolation=interpolation, fill_color=fill_color),
+            target_size=img_size, interpolation=interpolation, fill_color=fill_color
+        ),
         ImageToNumpy(),
     ]
 

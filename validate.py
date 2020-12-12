@@ -207,6 +207,8 @@ def validate(args):
     )  # might as well try to validate something
     args.prefetcher = not args.no_prefetcher
 
+    print(f"prefetched {args.prefetcher}")
+
     # create model
     bench = create_model(
         args.model,

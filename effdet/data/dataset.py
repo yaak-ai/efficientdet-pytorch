@@ -37,15 +37,21 @@ class DetectionDatset(data.Dataset):
             tuple: Tuple (image, annotations (target)).
         """
         img_info = self._parser.img_infos[index]
-        target = dict(img_idx=index, img_size=(img_info['width'], img_info['height']))
+        target = dict(img_idx=index, img_size=(img_info["width"], img_info["height"]))
         if self._parser.has_labels:
             ann = self._parser.get_ann_info(index)
             target.update(ann)
 
-        img_path = self.data_dir / img_info['file_name']
-        img = Image.open(img_path).convert('RGB')
+        img_path = self.data_dir / img_info["file_name"]
+        img = Image.open(img_path).convert("RGB")
+        # print(img.size)
         if self.transform is not None:
             img, target = self.transform(img, target)
+
+        # print(img.dtype)
+        # print(img_path)
+        # print(f"img_size: {target['img_size']}")
+        # print(f"img_scale: {target['img_scale']}")
 
         return img, target
 
@@ -73,6 +79,7 @@ class SkipSubset(data.Dataset):
         dataset (Dataset): The whole Dataset
         n (int): skip rate (select every nth)
     """
+
     def __init__(self, dataset, n=2):
         self.dataset = dataset
         assert n >= 1
