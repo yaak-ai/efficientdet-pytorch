@@ -24,6 +24,7 @@ def draw_rectangle(frame, boxes, color=(108, 233, 132)):
                 color=color,
             )
         except Exception as err:
+            print(f"error drawing {b}, {err}")
             continue
 
     return frame

@@ -144,7 +144,8 @@ class OpenImagesCfg:
     variant: str = None
     parser: str = "openimages"
     num_classes: int = None
-    img_filename = "%s.jpg"
+    # img_filename = "%s.jpg"
+    img_filename = "%s"
     splits: Dict[str, dict] = None
 
 

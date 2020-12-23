@@ -1,3 +1,4 @@
+import time
 import argparse
 from queue import Queue
 from threading import Thread
@@ -90,7 +91,6 @@ def preprocess(frame, input_tensor):
     3. HWC -> CHW
     4. CHN -> NCHW
     """
-
     size = input_tensor.shape[:2]
 
     # Throwing all pre-precessing onto device if possible
@@ -174,7 +174,13 @@ def redact_fn(queue_frame, queue_detection, video_file_path, fps, threshold):
 
 
 def redact(
-    model_name, weights_path, source_vid_path, dst_vid_path, results_json, batch_size=1
+    model_name,
+    weights_path,
+    source_vid_path,
+    dst_vid_path,
+    results_json,
+    threshold,
+    batch_size=1,
 ):
 
     torch.backends.cudnn.benchmark = True
@@ -258,7 +264,7 @@ def redact(
             queue_detection,
             Path(dst_vid_path),
             metadata.fps,
-            args.threshold,
+            threshold,
         ),
     )
     t2.start()
@@ -294,5 +300,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     redact(
-        args.model, args.weights, args.video, args.video_out, args.json, args.batch_size
+        args.model,
+        args.weights,
+        args.video,
+        args.video_out,
+        args.json,
+        args.threshold,
+        args.batch_size,
     )
